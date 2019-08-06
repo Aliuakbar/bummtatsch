@@ -1,5 +1,6 @@
 import random
 import subprocess
+import click
 
 """
 TODO:
@@ -9,7 +10,6 @@ TODO:
 """
 ly_file = "notes.ly"
 pdf_file = "notes.pdf"
-pdf_viewer = "zathura"
 
 REST_PROB = 6 # 1/x probability
 DOT_PROB = 3
@@ -31,7 +31,7 @@ def random_compose(n , time, note_lengths, octave_range):
     # randomly composes a melody with given conditions
     result = []
     notes = "cdefgab"
-    print(f"Using notes: {notes}")
+    click.echo(f"Using notes: {notes}")
     lengths = [2**i for i in range(note_lengths[0], note_lengths[1] + 1)]
     for _ in range(n):
         current = time
@@ -61,45 +61,38 @@ def random_compose(n , time, note_lengths, octave_range):
     return " ".join(result)
 
 
-def create_lilypond_file(key="c", modifier="major", time_signature=(4,
-                                                                           4),
-                         n=16, octave_range=(1, 2), note_lengths=(0, 4)):
-    """
-    key: e.g "c", "g", "fis", "as", default to "c"
-    modifier: "major" or "minor", defaults to "major"
-    time_signature: takt, (3, 4) <-> 3 / 4
-    n: # takte (oder wiemer demm au seit, defaults to 16
-    octave_range: (1, 2) <-> oktaven mit c' und c'' (absolut)
-    note_lengths: (longest, shortest) tone, as power of 2
-                         defaults to (0, 4) <-> 1, 16
-    """
+def create_lilypond_file(key, modifier, time_signature, n, octave_range, note_lengths):
     time1, time2 = time_signature
-    print("Composing...")
+    click.echo("Composing...")
     notes = random_compose(n, time1 / time2, note_lengths, octave_range)
-    print(f"Writing to {ly_file} ...")
+    click.echo(f"Writing to {ly_file} ...")
     with open(ly_file, "w") as file:
         formatted = template.format(key=key, modifier=modifier, time1=time1,
                                     time2=time2, notes=notes,)
         file.write(formatted)
-    print("Success")
+    click.echo("Success")
 
-def main():
-    print("Drinking coffee...")
-    create_lilypond_file("ges", "major", (11, 16), 32, (1, 2), (1, 5))
+@click.command()
+@click.option("-k", '--key', default='c', help="e.g 'c', 'g', 'fis', 'as'")
+@click.option("--minor", "modifier", flag_value="minor")
+@click.option("--major", "modifier", flag_value="major", default=True)
+@click.option("-t", "--time-signature", default=(4, 4), help='takt, (3, 4) <-> 3 / 4')
+@click.option("-n", default=16, help='# takte (oder wiemer demm au seit')
+@click.option("-o", "--octave-range", default=(1, 2), help="(1, 2) <-> oktaven mit c' und c'' (absolut)")
+@click.option("-l", "--note-lengths", default=(0, 4), help="(longest, shortest) tone, as power of 2")
+def bumm(*args, **kwargs):
+    click.echo("Drinking coffee...")
+    create_lilypond_file(*args, **kwargs)
     # compile with lilypond to pdf
-    print("Compiling to PDF...")
+    click.echo("Compiling to PDF...")
     process = subprocess.Popen(["lilypond", "-s", ly_file], stdout=subprocess.PIPE)
     output, error = process.communicate()
     if error:
         raise Exception(error)
-    print(f"Created {pdf_file}")
+    click.echo(f"Created {pdf_file}")
     # open up the pdf with an pdf viewer if supplied
-    if pdf_viewer:
-        print("Opening pdf...")
-        process = subprocess.Popen([pdf_viewer, pdf_file], stdout=subprocess.PIPE)
-        output, error = process.communicate()
-    else:
-        print("No pdf viewer supplied")
+    click.echo("Opening pdf...")
+    click.launch(pdf_file)
 
 if __name__ == "__main__":
-    main()
+    bumm()
