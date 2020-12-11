@@ -14,3 +14,7 @@ bumm -k fis --minor -t 5 8 -n 64
 # Example
 ![A random melody](/examples/example.png)
 ![Another one](/examples/another.png)
+
+# Roadmap
+- Implement non random heuristics that would produce good sounding output
+- Play the output
